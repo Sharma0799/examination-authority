@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examination Authority</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;background:#f3f6fa;color:#17202a;min-height:100vh}
+header{background:#123b63;color:#fff;padding:18px 6%;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px #0002}.logo{font-size:23px;font-weight:700}.sub{font-size:12px;opacity:.85;margin-top:4px}.badge{font-size:12px;border:1px solid #ffffff55;border-radius:20px;padding:7px 12px}
+.container{width:min(1100px,92%);margin:28px auto}.notice{background:#fff;border-left:5px solid #1d70b8;padding:15px 18px;border-radius:6px;box-shadow:0 2px 8px #0000000d;margin-bottom:22px}.notice b{display:block;margin-bottom:5px}.notice span{color:#59636e;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1.25fr;gap:22px}.card{background:#fff;border-radius:8px;box-shadow:0 3px 14px #00000012;padding:26px}.card h2{font-size:20px;color:#123b63;margin-bottom:8px}.card p{font-size:13px;color:#68727d;margin-bottom:22px}
+label{display:block;font-size:13px;font-weight:700;margin:15px 0 7px}input,select{width:100%;padding:12px;border:1px solid #cbd4dd;border-radius:5px;font-size:14px;outline:none}input:focus,select:focus{border-color:#1d70b8}
+button{width:100%;margin-top:20px;background:#1d5f95;color:white;border:0;border-radius:5px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}button:hover{background:#154b77}.secondary{background:#65717d}.danger{background:#a52a2a}.success{background:#277348}
+.error{color:#b42318;background:#fff0ef;padding:10px;border-radius:5px;font-size:13px;margin-top:14px;display:none}.hidden{display:none!important}
+.item{padding:12px 0;border-bottom:1px solid #e7ebef;font-size:13px}.date{color:#7a858f;font-size:11px;margin-top:5px}
+.student{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.info{background:#f5f8fb;border:1px solid #e1e7ed;padding:11px;border-radius:5px}.info small{display:block;color:#77818c;font-size:11px}.info strong{font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:15px;font-size:13px}th,td{border:1px solid #dce2e8;padding:11px;text-align:left}th{background:#eef3f7;color:#173d61}td:nth-child(2),td:nth-child(3){text-align:center}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.summary div{border:1px solid #dce2e8;padding:14px;text-align:center;border-radius:5px}.summary small{display:block;color:#737e89;margin-bottom:5px}.summary b{font-size:18px;color:#123b63}.status{display:inline-block;padding:7px 14px;border-radius:20px;font-weight:700;font-size:13px}
+.actions{display:flex;gap:10px;margin-top:20px}.actions button{margin:0}.toolbar{display:flex;gap:10px;margin-bottom:18px}.toolbar button{margin:0;width:auto;padding:10px 15px}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.subject-row{display:grid;grid-template-columns:1.5fr .7fr .8fr 40px;gap:7px;margin-bottom:8px}.subject-row input{padding:9px}.remove{margin:0;background:#a52a2a;padding:0;width:40px}.admin-table{overflow-x:auto}.admin-table table{min-width:650px}.small{font-size:12px;color:#68727d}.successmsg{background:#e8f6ed;color:#176b38;padding:10px;border-radius:5px;font-size:13px;margin-bottom:12px;display:none}
+footer{text-align:center;color:#7b858f;font-size:12px;padding:25px}
+@media(max-width:800px){.grid,.admin-grid{grid-template-columns:1fr}.student,.summary{grid-template-columns:1fr 1fr}.badge{display:none}}@media(max-width:500px){.student,.summary{grid-template-columns:1fr}.subject-row{grid-template-columns:1fr 1fr 1fr 35px}}
+@media print{header,.notice,.actions,footer{display:none!important}body{background:#fff}.card{box-shadow:none}.result{display:block!important}}
+</style>
+</head>
+<body>
+<header><div><div class="logo">EXAMINATION AUTHORITY</div><div class="sub">Examination & Result Portal</div></div><div class="badge" id="headerBadge">STUDENT PORTAL</div></header>
+
+<main class="container">
+<div class="notice"><b>Latest Announcement</b><span id="announcementText">Examination results are available through the student result portal. Enter your Roll Number and Exam ID to continue.</span></div>
+
+<!-- STUDENT LOGIN -->
+<section id="studentLogin" class="grid">
+<div class="card">
+<h2>Student Login</h2><p>Enter your examination credentials to view your result.</p>
+<form id="loginForm">
+<label>Roll Number</label><input id="roll" placeholder="e.g. 2026001" required>
+<label>Exam ID</label><input id="exam" placeholder="e.g. EXAM-2026" required>
+<button>VIEW RESULT</button><div id="loginError" class="error">Invalid Roll Number or Exam ID.</div>
+</form>
+<button class="secondary" onclick="showAdminLogin()">ADMIN LOGIN</button>
+</div>
+<div class="card"><h2>Announcements</h2><p>Important examination updates</p><div id="announcementList"></div></div>
+</section>
+
+<!-- RESULT -->
+<section id="resultArea" class="card hidden">
+<h2>Examination Result</h2><p>Student result statement</p>
+<div class="student"><div class="info"><small>Student Name</small><strong id="rName"></strong></div><div class="info"><small>Roll Number</small><strong id="rRoll"></strong></div><div class="info"><small>Exam ID</small><strong id="rExam"></strong></div><div class="info"><small>Course / Class</small><strong id="rCourse"></strong></div><div class="info"><small>Examination</small><strong id="rTitle"></strong></div><div class="info"><small>Result Status</small><span class="status" id="rStatus"></span></div></div>
+<table><thead><tr><th>Subject</th><th>Max Marks</th><th>Marks Obtained</th></tr></thead><tbody id="marks"></tbody></table>
+<div class="summary"><div><small>Total Marks</small><b id="total"></b></div><div><small>Percentage</small><b id="percent"></b></div><div><small>Result</small><b id="resultText"></b></div></div>
+<div class="actions"><button onclick="window.print()">PRINT RESULT</button><button class="secondary" onclick="logout()">BACK TO LOGIN</button></div>
+</section>
+
+<!-- ADMIN LOGIN -->
+<section id="adminLogin" class="card hidden">
+<h2>Administrator Login</h2><p>Authorized administrators only.</p>
+<form id="adminForm"><label>Username</label><input id="adminUser" required><label>Password</label><input id="adminPass" type="password" required><button>LOGIN</button><div id="adminError" class="error">Invalid administrator credentials.</div></form>
+<button class="secondary" onclick="backHome()">BACK</button>
+</section>
+
+<!-- ADMIN PANEL -->
+<section id="adminPanel" class="hidden">
+<div class="toolbar"><button onclick="showAdminDashboard()">Dashboard</button><button onclick="showAddResult()">Add Result</button><button onclick="showManageResults()">Manage Results</button><button onclick="showAnnouncements()">Announcements</button><button class="secondary" onclick="adminLogout()">LOGOUT</button></div>
+
+<div id="adminDashboard" class="card"><h2>Administrator Dashboard</h2><p>Manage student results and portal announcements.</p><div class="summary"><div><small>Total Results</small><b id="countResults">0</b></div><div><small>Announcements</small><b id="countAnnouncements">0</b></div><div><small>Portal</small><b>ACTIVE</b></div></div><p class="small" style="margin-top:20px">This browser-based version stores data locally on this device. It is suitable for demonstration or small local use, not for secure production deployment.</p></div>
+
+<div id="addResult" class="card hidden"><h2>Add / Update Student Result</h2><p>Fill in the student's examination details.</p><div id="saveMsg" class="successmsg">Result saved successfully.</div>
+<div class="admin-grid"><div><label>Student Name</label><input id="aName"><label>Roll Number</label><input id="aRoll"><label>Exam ID</label><input id="aExam" value="EXAM-2026"><label>Course / Class</label><input id="aCourse" placeholder="B.Pharm - Semester IV"><label>Examination</label><input id="aTitle" value="Annual Examination 2026"></div>
+<div><label>Subjects</label><div id="subjects"></div><button class="secondary" onclick="addSubject()">+ ADD SUBJECT</button><button class="success" onclick="saveResult()">SAVE / PUBLISH RESULT</button></div></div></div>
+
+<div id="manageResults" class="card hidden"><h2>Manage Results</h2><p>View or delete published results.</p><div class="admin-table"><table><thead><tr><th>Roll Number</th><th>Name</th><th>Exam ID</th><th>Course</th><th>Action</th></tr></thead><tbody id="resultsTable"></tbody></table></div></div>
+
+<div id="announcements" class="card hidden"><h2>Manage Announcements</h2><p>Add an announcement that will appear on the student portal.</p><label>Announcement Title</label><input id="annTitle" placeholder="Result Declaration"><label>Announcement Text</label><input id="annText" placeholder="The examination result has been published."><button class="success" onclick="saveAnnouncement()">PUBLISH ANNOUNCEMENT</button><div style="margin-top:20px" id="adminAnnList"></div></div>
+</section>
+</main>
+<footer>© 2026 Examination Authority. Demonstration portal.</footer>
+
+<script>
+const KEY="examAuthorityResultsV2", ANNKEY="examAuthorityAnnouncementsV2";
+const defaultResults={
+"2026001":{exam:"EXAM-2026",name:"Aarav Sharma",course:"B.Pharm - Semester IV",title:"Annual Examination 2026",subjects:[["Pharmacognosy",100,82],["Pharmaceutical Chemistry",100,76],["Pharmacology",100,79],["Pharmaceutics",100,85],["Human Anatomy",100,74]]},
+"2026002":{exam:"EXAM-2026",name:"Riya Verma",course:"B.Pharm - Semester IV",title:"Annual Examination 2026",subjects:[["Pharmacognosy",100,88],["Pharmaceutical Chemistry",100,81],["Pharmacology",100,84],["Pharmaceutics",100,78],["Human Anatomy",100,86]]}
+};
+const defaultAnnouncements=[
+{title:"Result Declaration",text:"The examination result has been published on the portal.",date:"18 September 2026"},
+{title:"Examination Notice",text:"Students are advised to verify their examination details before downloading the result.",date:"15 September 2026"},
+{title:"Student Information",text:"Keep your Roll Number and Exam ID ready to access your result.",date:"10 September 2026"}];
+let results=JSON.parse(localStorage.getItem(KEY)||"null")||defaultResults;
+let announcements=JSON.parse(localStorage.getItem(ANNKEY)||"null")||defaultAnnouncements;
+function persist(){localStorage.setItem(KEY,JSON.stringify(results));localStorage.setItem(ANNKEY,JSON.stringify(announcements));}
+function hideAll(){["studentLogin","resultArea","adminLogin","adminPanel"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function renderAnnouncements(){document.getElementById("announcementList").innerHTML=announcements.map(a=>`<div class="item"><b>${esc(a.title)}</b><div>${esc(a.text)}</div><div class="date">${esc(a.date)}</div></div>`).join("");document.getElementById("announcementText").textContent=announcements[0]?.text||"No current announcements.";document.getElementById("countAnnouncements").textContent=announcements.length}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function showHome(){hideAll();document.getElementById("studentLogin").classList.remove("hidden");document.getElementById("headerBadge").textContent="STUDENT PORTAL"}
+function showAdminLogin(){hideAll();document.getElementById("adminLogin").classList.remove("hidden");document.getElementById("headerBadge").textContent="ADMINISTRATOR"}
+function backHome(){showHome()}
+document.getElementById("loginForm").onsubmit=e=>{e.preventDefault();let r=document.getElementById("roll").value.trim().toUpperCase(),x=document.getElementById("exam").value.trim().toUpperCase(),d=results[r];if(!d||d.exam!==x){document.getElementById("loginError").style.display="block";return}document.getElementById("loginError").style.display="none";showResult(r,d)}
+function showResult(r,d){hideAll();document.getElementById("resultArea").classList.remove("hidden");document.getElementById("headerBadge").textContent="RESULT";["rName","rRoll","rExam","rCourse","rTitle"].forEach((id,i)=>document.getElementById(id).textContent=[d.name,r,d.exam,d.course,d.title][i]);let max=0,total=0;document.getElementById("marks").innerHTML=d.subjects.map(s=>{max+=+s[1];total+=+s[2];return`<tr><td>${esc(s[0])}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`}).join("");let p=(total/max*100).toFixed(2),pass=+p>=40;document.getElementById("total").textContent=`${total} / ${max}`;document.getElementById("percent").textContent=p+"%";document.getElementById("resultText").textContent=pass?"PASS":"FAIL";let st=document.getElementById("rStatus");st.textContent=pass?"PASS":"FAIL";st.style.background=pass?"#e7f6ec":"#fdecec";st.style.color=pass?"#16733a":"#b42318"}
+function logout(){showHome();document.getElementById("loginForm").reset()}
+document.getElementById("adminForm").onsubmit=e=>{e.preventDefault();if(document.getElementById("adminUser").value==="admin"&&document.getElementById("adminPass").value==="admin123"){document.getElementById("adminError").style.display="none";hideAll();document.getElementById("adminPanel").classList.remove("hidden");document.getElementById("headerBadge").textContent="ADMINISTRATOR";showAdminDashboard()}else document.getElementById("adminError").style.display="block"}
+function adminLogout(){showHome()}
+function showAdminDashboard(){hideSections();document.getElementById("adminDashboard").classList.remove("hidden");document.getElementById("countResults").textContent=Object.keys(results).length}
+function hideSections(){["adminDashboard","addResult","manageResults","announcements"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function showAddResult(){hideSections();document.getElementById("addResult").classList.remove("hidden");if(!document.querySelector(".subject-row")){addSubject();addSubject()}}
+function addSubject(name="",max=100,marks=""){let d=document.createElement("div");d.className="subject-row";d.innerHTML=`<input class="sname" placeholder="Subject" value="${esc(name)}"><input class="smax" type="number" placeholder="Max" value="${max}"><input class="smarks" type="number" placeholder="Obtained" value="${marks}"><button class="remove" type="button" onclick="this.parentElement.remove()">×</button>`;document.getElementById("subjects").appendChild(d)}
+function saveResult(){let roll=document.getElementById("aRoll").value.trim().toUpperCase(),name=document.getElementById("aName").value.trim(),exam=document.getElementById("aExam").value.trim().toUpperCase();if(!roll||!name||!exam){alert("Please fill Student Name, Roll Number and Exam ID.");return}let subs=[...document.querySelectorAll(".subject-row")].map(r=>[r.querySelector(".sname").value.trim(),+r.querySelector(".smax").value||0,+r.querySelector(".smarks").value||0]).filter(s=>s[0]);if(!subs.length){alert("Add at least one subject.");return}results[roll]={name,exam,course:document.getElementById("aCourse").value.trim(),title:document.getElementById("aTitle").value.trim(),subjects:subs};persist();document.getElementById("saveMsg").style.display="block";setTimeout(()=>document.getElementById("saveMsg").style.display="none",2500);renderManage()}
+function showManageResults(){hideSections();document.getElementById("manageResults").classList.remove("hidden");renderManage()}
+function renderManage(){document.getElementById("resultsTable").innerHTML=Object.entries(results).map(([r,d])=>`<tr><td>${esc(r)}</td><td>${esc(d.name)}</td><td>${esc(d.exam)}</td><td>${esc(d.course)}</td><td><button class="danger" style="margin:0;padding:8px" onclick="deleteResult('${encodeURIComponent(r)}')">DELETE</button></td></tr>`).join("")||`<tr><td colspan="5">No results available.</td></tr>`;document.getElementById("countResults").textContent=Object.keys(results).length}
+function deleteResult(encoded){let r=decodeURIComponent(encoded);if(confirm("Delete result for "+r+"?")){delete results[r];persist();renderManage()}}
+function showAnnouncements(){hideSections();document.getElementById("announcements").classList.remove("hidden");renderAdminAnnouncements()}
+function saveAnnouncement(){let title=document.getElementById("annTitle").value.trim(),text=document.getElementById("annText").value.trim();if(!title||!text){alert("Enter title and announcement text.");return}announcements.unshift({title,text,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})});persist();renderAnnouncements();renderAdminAnnouncements();document.getElementById("annTitle").value="";document.getElementById("annText").value=""}
+function renderAdminAnnouncements(){document.getElementById("adminAnnList").innerHTML=announcements.map((a,i)=>`<div class="item"><b>${esc(a.title)}</b><div>${esc(a.text)}</div><div class="date">${esc(a.date)}</div><button class="danger" style="width:auto;margin-top:8px;padding:7px 10px" onclick="deleteAnnouncement(${i})">DELETE</button></div>`).join("")}
+function deleteAnnouncement(i){if(confirm("Delete this announcement?")){announcements.splice(i,1);persist();renderAnnouncements();renderAdminAnnouncements()}}
+renderAnnouncements();persist();
+</script>
+</body>
+</html>
