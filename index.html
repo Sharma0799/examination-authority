@@ -73,8 +73,11 @@ footer{text-align:center;color:#7b858f;font-size:12px;padding:25px}
 </section>
 </main>
 <footer>© 2026 Examination Authority. Demonstration portal.</footer>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  const SUPABASE_URL="https://uatiglbxpdngzvgxwedz.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_uH2i4qjB1GG-yuvZm_wWIQ_Ul-Gu5cn";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const KEY="examAuthorityResultsV2", ANNKEY="examAuthorityAnnouncementsV2";
 const defaultResults={
 "2026001":{exam:"EXAM-2026",name:"Aarav Sharma",course:"B.Pharm - Semester IV",title:"Annual Examination 2026",subjects:[["Pharmacognosy",100,82],["Pharmaceutical Chemistry",100,76],["Pharmacology",100,79],["Pharmaceutics",100,85],["Human Anatomy",100,74]]},
@@ -84,33 +87,268 @@ const defaultAnnouncements=[
 {title:"Result Declaration",text:"The examination result has been published on the portal.",date:"18 September 2026"},
 {title:"Examination Notice",text:"Students are advised to verify their examination details before downloading the result.",date:"15 September 2026"},
 {title:"Student Information",text:"Keep your Roll Number and Exam ID ready to access your result.",date:"10 September 2026"}];
-let results=JSON.parse(localStorage.getItem(KEY)||"null")||defaultResults;
-let announcements=JSON.parse(localStorage.getItem(ANNKEY)||"null")||defaultAnnouncements;
-function persist(){localStorage.setItem(KEY,JSON.stringify(results));localStorage.setItem(ANNKEY,JSON.stringify(announcements));}
+let results=[];
+let announcements=[];
+function persist(){}
 function hideAll(){["studentLogin","resultArea","adminLogin","adminPanel"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+  async function loadAnnouncements(){
+const {data,error}=await supabaseClient
+.from("announcements")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+console.error(error);
+return;
+}
+
+announcements=data||[];
+renderAnnouncements();
+  }
 function renderAnnouncements(){document.getElementById("announcementList").innerHTML=announcements.map(a=>`<div class="item"><b>${esc(a.title)}</b><div>${esc(a.text)}</div><div class="date">${esc(a.date)}</div></div>`).join("");document.getElementById("announcementText").textContent=announcements[0]?.text||"No current announcements.";document.getElementById("countAnnouncements").textContent=announcements.length}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function showHome(){hideAll();document.getElementById("studentLogin").classList.remove("hidden");document.getElementById("headerBadge").textContent="STUDENT PORTAL"}
 function showAdminLogin(){hideAll();document.getElementById("adminLogin").classList.remove("hidden");document.getElementById("headerBadge").textContent="ADMINISTRATOR"}
 function backHome(){showHome()}
-document.getElementById("loginForm").onsubmit=e=>{e.preventDefault();let r=document.getElementById("roll").value.trim().toUpperCase(),x=document.getElementById("exam").value.trim().toUpperCase(),d=results[r];if(!d||d.exam!==x){document.getElementById("loginError").style.display="block";return}document.getElementById("loginError").style.display="none";showResult(r,d)}
-function showResult(r,d){hideAll();document.getElementById("resultArea").classList.remove("hidden");document.getElementById("headerBadge").textContent="RESULT";["rName","rRoll","rExam","rCourse","rTitle"].forEach((id,i)=>document.getElementById(id).textContent=[d.name,r,d.exam,d.course,d.title][i]);let max=0,total=0;document.getElementById("marks").innerHTML=d.subjects.map(s=>{max+=+s[1];total+=+s[2];return`<tr><td>${esc(s[0])}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`}).join("");let p=(total/max*100).toFixed(2),pass=+p>=40;document.getElementById("total").textContent=`${total} / ${max}`;document.getElementById("percent").textContent=p+"%";document.getElementById("resultText").textContent=pass?"PASS":"FAIL";let st=document.getElementById("rStatus");st.textContent=pass?"PASS":"FAIL";st.style.background=pass?"#e7f6ec":"#fdecec";st.style.color=pass?"#16733a":"#b42318"}
+document.getElementById("loginForm").onsubmit=async e=>{
+e.preventDefault();
+
+let r=document.getElementById("roll").value.trim().toUpperCase();
+let x=document.getElementById("exam").value.trim().toUpperCase();
+
+document.getElementById("loginError").style.display="none";
+
+const {data,error}=await supabaseClient.rpc("get_result",{
+p_roll_number:r,
+p_exam_id:x
+});
+
+if(error){
+console.error(error);
+document.getElementById("loginError").textContent="Unable to check result. Please try again.";
+document.getElementById("loginError").style.display="block";
+return;
+}
+
+const d=data?.[0];
+
+if(!d){
+document.getElementById("loginError").textContent="Invalid Roll Number or Exam ID.";
+document.getElementById("loginError").style.display="block";
+return;
+}
+
+showResult(d);
+};
+function showResult(d){
+hideAll();
+document.getElementById("resultArea").classList.remove("hidden");
+document.getElementById("headerBadge").textContent="RESULT";
+
+document.getElementById("rName").textContent=d.student_name||"";
+document.getElementById("rRoll").textContent=d.roll_number||"";
+document.getElementById("rExam").textContent=d.exam_id||"";
+document.getElementById("rCourse").textContent=d.course||"";
+document.getElementById("rTitle").textContent=d.examination_title||"";
+
+let subjects=Array.isArray(d.subjects)?d.subjects:[];
+
+document.getElementById("marks").innerHTML=subjects.map(s=>`
+<tr>
+<td>${esc(s[0])}</td>
+<td>${s[1]}</td>
+<td>${s[2]}</td>
+</tr>`).join("");
+
+let max=subjects.reduce((a,s)=>a+Number(s[1]||0),0);
+let total=d.total!=null?Number(d.total):subjects.reduce((a,s)=>a+Number(s[2]||0),0);
+let p=d.percentage!=null?Number(d.percentage):(max?total/max*100:0);
+
+document.getElementById("total").textContent=`${total} / ${max}`;
+document.getElementById("percent").textContent=p.toFixed(2)+"%";
+
+let result=d.result_status||(+p>=40?"PASS":"FAIL");
+
+document.getElementById("resultText").textContent=result;
+
+let st=document.getElementById("rStatus");
+st.textContent=result;
+st.style.background=result==="PASS"?"#e7f6ec":"#fdecec";
+st.style.color=result==="PASS"?"#16733a":"#b42318";
+  }
 function logout(){showHome();document.getElementById("loginForm").reset()}
-document.getElementById("adminForm").onsubmit=e=>{e.preventDefault();if(document.getElementById("adminUser").value==="admin"&&document.getElementById("adminPass").value==="admin123"){document.getElementById("adminError").style.display="none";hideAll();document.getElementById("adminPanel").classList.remove("hidden");document.getElementById("headerBadge").textContent="ADMINISTRATOR";showAdminDashboard()}else document.getElementById("adminError").style.display="block"}
-function adminLogout(){showHome()}
+document.getElementById("adminForm").onsubmit=async e=>{
+e.preventDefault();
+
+const email=document.getElementById("adminUser").value.trim();
+const password=document.getElementById("adminPass").value;
+
+const {error}=await supabaseClient.auth.signInWithPassword({
+email:email,
+password:password
+});
+
+if(error){
+document.getElementById("adminError").textContent="Invalid email or password.";
+document.getElementById("adminError").style.display="block";
+return;
+}
+
+document.getElementById("adminError").style.display="none";
+hideAll();
+document.getElementById("adminPanel").classList.remove("hidden");
+document.getElementById("headerBadge").textContent="ADMINISTRATOR";
+showAdminDashboard();
+};
+async function adminLogout(){
+await supabaseClient.auth.signOut();
+showHome();
+}
 function showAdminDashboard(){hideSections();document.getElementById("adminDashboard").classList.remove("hidden");document.getElementById("countResults").textContent=Object.keys(results).length}
 function hideSections(){["adminDashboard","addResult","manageResults","announcements"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
 function showAddResult(){hideSections();document.getElementById("addResult").classList.remove("hidden");if(!document.querySelector(".subject-row")){addSubject();addSubject()}}
 function addSubject(name="",max=100,marks=""){let d=document.createElement("div");d.className="subject-row";d.innerHTML=`<input class="sname" placeholder="Subject" value="${esc(name)}"><input class="smax" type="number" placeholder="Max" value="${max}"><input class="smarks" type="number" placeholder="Obtained" value="${marks}"><button class="remove" type="button" onclick="this.parentElement.remove()">×</button>`;document.getElementById("subjects").appendChild(d)}
-function saveResult(){let roll=document.getElementById("aRoll").value.trim().toUpperCase(),name=document.getElementById("aName").value.trim(),exam=document.getElementById("aExam").value.trim().toUpperCase();if(!roll||!name||!exam){alert("Please fill Student Name, Roll Number and Exam ID.");return}let subs=[...document.querySelectorAll(".subject-row")].map(r=>[r.querySelector(".sname").value.trim(),+r.querySelector(".smax").value||0,+r.querySelector(".smarks").value||0]).filter(s=>s[0]);if(!subs.length){alert("Add at least one subject.");return}results[roll]={name,exam,course:document.getElementById("aCourse").value.trim(),title:document.getElementById("aTitle").value.trim(),subjects:subs};persist();document.getElementById("saveMsg").style.display="block";setTimeout(()=>document.getElementById("saveMsg").style.display="none",2500);renderManage()}
-function showManageResults(){hideSections();document.getElementById("manageResults").classList.remove("hidden");renderManage()}
+  async function publishResult(){
+const roll=document.getElementById("aRoll").value.trim().toUpperCase();
+const name=document.getElementById("aName").value.trim();
+const exam=document.getElementById("aExam").value.trim().toUpperCase();
+
+if(!roll||!name||!exam){
+alert("Please fill Student Name, Roll Number and Exam ID.");
+return;
+}
+
+const subs=[...document.querySelectorAll(".subject-row")]
+.map(r=>[
+r.querySelector(".sname").value.trim(),
+Number(r.querySelector(".smax").value)||0,
+Number(r.querySelector(".smarks").value)||0
+])
+.filter(s=>s[0]);
+
+if(!subs.length){
+alert("Add at least one subject.");
+return;
+}
+
+const maxTotal=subs.reduce((a,s)=>a+Number(s[1]),0);
+const total=subs.reduce((a,s)=>a+Number(s[2]),0);
+const percentage=maxTotal?(total/maxTotal*100):0;
+
+const row={
+roll_number:roll,
+exam_id:exam,
+student_name:name,
+course:document.getElementById("aCourse").value.trim(),
+examination_title:document.getElementById("aTitle").value.trim(),
+subjects:subs,
+total:total,
+percentage:percentage.toFixed(2),
+result_status:percentage>=40?"PASS":"FAIL"
+};
+
+const {error}=await supabaseClient
+.from("results")
+.upsert(row,{onConflict:"roll_number,exam_id"});
+
+if(error){
+console.error(error);
+alert("Could not save result.");
+return;
+}
+
+alert("Result published successfully.");
+  }
+function saveResult(){return publishResult();let roll=document.getElementById("aRoll").value.trim().toUpperCase(),name=document.getElementById("aName").value.trim(),exam=document.getElementById("aExam").value.trim().toUpperCase();if(!roll||!name||!exam){alert("Please fill Student Name, Roll Number and Exam ID.");return}let subs=[...document.querySelectorAll(".subject-row")].map(r=>[r.querySelector(".sname").value.trim(),+r.querySelector(".smax").value||0,+r.querySelector(".smarks").value||0]).filter(s=>s[0]);if(!subs.length){alert("Add at least one subject.");return}results[roll]={name,exam,course:document.getElementById("aCourse").value.trim(),title:document.getElementById("aTitle").value.trim(),subjects:subs};persist();document.getElementById("saveMsg").style.display="block";setTimeout(()=>document.getElementById("saveMsg").style.display="none",2500);renderManage()}
+function showManageResults(){
+hideSections();
+document.getElementById("manageResults").classList.remove("hidden");
+loadResults();
+  }
+  async function loadResults(){
+const {data,error}=await supabaseClient
+.from("results")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+console.error(error);
+return;
+}
+
+results=data||[];
+renderManage();
+  }
 function renderManage(){document.getElementById("resultsTable").innerHTML=Object.entries(results).map(([r,d])=>`<tr><td>${esc(r)}</td><td>${esc(d.name)}</td><td>${esc(d.exam)}</td><td>${esc(d.course)}</td><td><button class="danger" style="margin:0;padding:8px" onclick="deleteResult('${encodeURIComponent(r)}')">DELETE</button></td></tr>`).join("")||`<tr><td colspan="5">No results available.</td></tr>`;document.getElementById("countResults").textContent=Object.keys(results).length}
-function deleteResult(encoded){let r=decodeURIComponent(encoded);if(confirm("Delete result for "+r+"?")){delete results[r];persist();renderManage()}}
+async function deleteResult(id){
+if(!confirm("Delete this result?")) return;
+
+const {error}=await supabaseClient
+.from("results")
+.delete()
+.eq("id",id);
+
+if(error){
+console.error(error);
+alert("Could not delete result.");
+return;
+}
+
+alert("Result deleted successfully.");
+loadResults();
+  }
 function showAnnouncements(){hideSections();document.getElementById("announcements").classList.remove("hidden");renderAdminAnnouncements()}
-function saveAnnouncement(){let title=document.getElementById("annTitle").value.trim(),text=document.getElementById("annText").value.trim();if(!title||!text){alert("Enter title and announcement text.");return}announcements.unshift({title,text,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})});persist();renderAnnouncements();renderAdminAnnouncements();document.getElementById("annTitle").value="";document.getElementById("annText").value=""}
+async function publishAnnouncement(){
+const title=document.getElementById("annTitle").value.trim();
+const text=document.getElementById("annText").value.trim();
+
+if(!title||!text){
+alert("Enter title and announcement text.");
+return;
+}
+
+const {error}=await supabaseClient
+.from("announcements")
+.insert({
+title:title,
+body:text
+});
+
+if(error){
+alert("Could not publish announcement.");
+console.error(error);
+return;
+}
+
+document.getElementById("annTitle").value="";
+document.getElementById("annText").value="";
+
+await loadAnnouncements();
+renderAdminAnnouncements();
+
+alert("Announcement published successfully.");
+  }
+function saveAnnouncement(){return publishAnnouncement();let title=document.getElementById("annTitle").value.trim(),text=document.getElementById("annText").value.trim();if(!title||!text){alert("Enter title and announcement text.");return}announcements.unshift({title,text,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})});persist();renderAnnouncements();renderAdminAnnouncements();document.getElementById("annTitle").value="";document.getElementById("annText").value=""}
 function renderAdminAnnouncements(){document.getElementById("adminAnnList").innerHTML=announcements.map((a,i)=>`<div class="item"><b>${esc(a.title)}</b><div>${esc(a.text)}</div><div class="date">${esc(a.date)}</div><button class="danger" style="width:auto;margin-top:8px;padding:7px 10px" onclick="deleteAnnouncement(${i})">DELETE</button></div>`).join("")}
-function deleteAnnouncement(i){if(confirm("Delete this announcement?")){announcements.splice(i,1);persist();renderAnnouncements();renderAdminAnnouncements()}}
-renderAnnouncements();persist();
+async function deleteAnnouncement(id){
+if(!confirm("Delete this announcement?")) return;
+
+const {error}=await supabaseClient
+.from("announcements")
+.delete()
+.eq("id",id);
+
+if(error){
+console.error(error);
+alert("Could not delete announcement.");
+return;
+}
+
+alert("Announcement deleted successfully.");
+await loadAnnouncements();
+renderAdminAnnouncements();
+}
+loadAnnouncements();
 </script>
 </body>
 </html>
