@@ -279,7 +279,21 @@ return;
 results=data||[];
 renderManage();
   }
-function renderManage(){document.getElementById("resultsTable").innerHTML=Object.entries(results).map(([r,d])=>`<tr><td>${esc(r)}</td><td>${esc(d.name)}</td><td>${esc(d.exam)}</td><td>${esc(d.course)}</td><td><button class="danger" style="margin:0;padding:8px" onclick="deleteResult('${encodeURIComponent(r)}')">DELETE</button></td></tr>`).join("")||`<tr><td colspan="5">No results available.</td></tr>`;document.getElementById("countResults").textContent=Object.keys(results).length}
+function renderManage(){
+document.getElementById("resultsTable").innerHTML=results.map(d=>`
+<tr>
+<td>${esc(d.roll_number||"")}</td>
+<td>${esc(d.student_name||"")}</td>
+<td>${esc(d.exam_id||"")}</td>
+<td>${esc(d.course||"")}</td>
+<td>
+<button class="danger" style="margin:0;padding:8px" onclick="deleteResult('${d.id}')">DELETE</button>
+</td>
+</tr>
+`).join("")||`<tr><td colspan="5">No results available.</td></tr>`;
+
+document.getElementById("countResults").textContent=results.length;
+}
 async function deleteResult(id){
 if(!confirm("Delete this result?")) return;
 
