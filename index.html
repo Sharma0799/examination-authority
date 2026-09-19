@@ -253,7 +253,7 @@ const {error}=await supabaseClient
 
 if(error){
 console.error(error);
-alert("Could not save result.");
+alert("Could not save result: "+error.message);
 return;
 }
 
